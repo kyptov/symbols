@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="scripts/display.js"></script>
+    <style>
+        canvas, body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<canvas id="ansi"></canvas>
+<script>
+    "use strict";
+    var display = new Display();
+
+    display.drawSymbol(65, "blue", "yellow", 10, 10);
+
+
+
+    /*var elementWidth = 8;
+    var elementHeight = 15;
+    var width = 150;
+    var height = 40;
+    var canvas = $("canvas").get(0);
+    canvas.width = width * elementWidth;
+    canvas.height = height * elementHeight;
+    var ctx = canvas.getContext('2d');
+    var c= 187;
+    ctx.font = "48px serif";
+    ctx.fillStyle = 'blue';
+    //http://unicode-table.com/en/#2500
+    ctx.fillText(String.fromCharCode(parseInt("254B", 16)) + String.fromCharCode(parseInt("2501", 16)), 100, 100);
+    ctx.fillStyle = 'red';
+    ctx.fillText(String.fromCharCode(188), 150, 100);*/
+
+</script>
+</body>
+</html>
