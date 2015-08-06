@@ -1,0 +1,22 @@
+{
+  "name": "symbols",
+  "version": "1.0.0",
+  "description": "Print symbols on canvas",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kyptov/symbols.git"
+  },
+  "author": {
+    "name": "Alexandr Curtov",
+    "email": "alexandr@curtov.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kyptov/symbols/issues"
+  },
+  "homepage": "https://github.com/kyptov/symbols#readme"
+}
