@@ -136,9 +136,7 @@
         255: parseInt("25A1", 16)
     };
 
-    var underscore = "005F";
-
-    var Display = function (canvasSelector, width, height) {
+    var Symbols = function (canvasSelector, width, height) {
 
         canvasSelector = canvasSelector || "#ansi";
 
@@ -153,44 +151,69 @@
         this.canvas.width = this._elW * width;
         this.canvas.height = this._elH * height;
 
+        this.default = {
+            bg: tagParser.defaultColours.text.bg,
+            fg: tagParser.defaultColours.text.fg
+        };
+
         this._init();
+
+        this._blinkCursor();
+
     };
 
-    Display.prototype._elW = 8;
+    Symbols.prototype._elW = 7;
 
-    Display.prototype._elH = 15;
+    Symbols.prototype._elH = 14;
 
-    Display.prototype._storage = {};
+    Symbols.prototype._cursorX = 0;
 
-    Display.prototype._init = function () {
-        this.ctx.fillStyle = "black";
+    Symbols.prototype._cursorY = 0;
+
+    Symbols.prototype._storage = {};
+
+    Symbols.prototype._cursorShown = false;
+
+    Symbols.prototype._blinkPeriod = 500;
+
+    Symbols.prototype._blinking = false;
+
+    Symbols.prototype._init = function () {
+        this.ctx.fillStyle = this.default["bg"];
         this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
     };
 
-    Display.prototype.drawSymbol = function (asciiCode, bg, fg, x, y) {
+    Symbols.prototype.drawSymbol = function (asciiCode, x, y, fg, bg) {
+
+        fg = fg || this.default.fg;
+        bg = bg || this.default.bg;
 
         if (this._checkStorage(asciiCode, bg, fg, x, y)) {
             return;
         }
 
+        this.drawBackground(bg, x, y);
+
         this._setInStorage(asciiCode, bg, fg, x, y);
 
-        this.drawBackground(bg, x, y);
-        this.ctx.font = "14px Lucida Console, monospace";
+        this.ctx.font = "14px Lucida Console";
         this.ctx.textBaseline = "top";
         this.ctx.fillStyle = fg;
         asciiCode = this.asciiToUnicode(asciiCode);
-        x = x * this._elW;
+        x = x * this._elW - 1;
         y = y * this._elH;
         this.ctx.fillText(String.fromCharCode(asciiCode), x, y);
     };
 
-    Display.prototype.drawBackground = function (color, x, y) {
+    Symbols.prototype.drawBackground = function (color, x, y) {
+        if (!this._checkBg(color, x, y)) {
+            return;
+        }
         this.ctx.fillStyle = color;
         this.ctx.fillRect(x * this._elW, y * this._elH, this._elW, this._elH);
     };
 
-    Display.prototype.asciiToUnicode = function (asciiCode) {
+    Symbols.prototype.asciiToUnicode = function (asciiCode) {
         if (typeof asciiToUnicode[asciiCode] === "undefined") {
             return asciiCode;
         }
@@ -198,7 +221,132 @@
         return asciiToUnicode[asciiCode];
     };
 
-    Display.prototype._checkStorage = function (asciiCode, bg, fg, x, y) {
+    Symbols.prototype.showCursor = function (param) {
+        this._cursorShown = param;
+        if (param) {
+            this._blinkCursor();
+        }
+    };
+
+    Symbols.prototype.getCoords = function (e) {
+
+        var rect = this.canvas.getBoundingClientRect();
+
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
+
+        return {
+            x: Math.floor(x /  this._elW),
+            y: Math.floor(y /  this._elH)
+        }
+
+    };
+
+    Symbols.prototype.setCursor = function (coords) {
+        clearTimeout(this._cursorTimeout);
+        this._cursorX = coords.x;
+        this._cursorY = coords.y;
+        this.showCursor(true);
+    };
+
+    Symbols.prototype.clearRect = function (x, y, w, h) {
+        this.ctx.fillStyle = this.default["bg"];
+
+        for (var i = x; i <= w; i++) {
+            for (var j = y; j <= h; j++) {
+                if (this._storage[i] && this._storage[i][j]) {
+                    this._storage[i][j].code = null;
+                }
+            }
+        }
+
+        x *= this._elW;
+        w *= this._elW;
+        y *= this._elH;
+        h *= this._elH;
+        this.ctx.fillRect(x,y,w,h);
+
+
+    };
+
+
+
+    Symbols.prototype._blinkCursor = function () {
+        var self = this;
+
+        this._cursorTimeout = setTimeout(function() {
+
+            if (!self._cursorShown && self._blinking) {
+                return;
+            }
+
+            var x = self._cursorX;
+            var y = self._cursorY;
+
+            if (self._blinking) {
+                self._blinking = false;
+                var type = "fg";
+                self.ctx.font = "normal 14px Lucida Console";
+
+            } else {
+                self._blinking = true;
+                type = "bg";
+                self.ctx.font = "bold 14px Lucida Console";
+            }
+
+            self.ctx.textBaseline = "top";
+            self.ctx.fillStyle = self._getColor(x,y, type);
+            self.ctx.fillText("_", x * self._elW, y * self._elH);
+
+            self._blinkCursor();
+        }, this._blinkPeriod);
+
+
+    };
+
+    Symbols.prototype._checkBg = function (color, x, y) {
+
+        var needToRedraw = true;
+
+        if (typeof this._storage[x] === "undefined") {
+            needToRedraw = false;
+        }
+
+        if (needToRedraw && typeof  this._storage[x][y] === "undefined") {
+            needToRedraw = false;
+        }
+
+        return !(!needToRedraw && color === this.default["bg"]);
+    };
+
+    Symbols.prototype._getColor = function (x, y, type) {
+
+        type = type === "bg" ? "bg" : "fg";
+
+        if (typeof this._storage[x] === "undefined") {
+            return this.default[type];
+        }
+
+        if (typeof  this._storage[x][y] === "undefined") {
+            return this.default[type];
+        }
+
+        return this._storage[x][y][type];
+    };
+
+    Symbols.prototype._getSymbol = function (x, y) {
+        if (typeof this._storage[x] === "undefined") {
+            return false;
+        }
+
+        if (typeof  this._storage[x][y] === "undefined") {
+            return false;
+        }
+
+        return this._storage[x][y].code;
+    };
+
+    Symbols.prototype._checkStorage = function (asciiCode, bg, fg, x, y) {
 
         if (typeof this._storage[x] === "undefined") {
             return false;
@@ -223,7 +371,7 @@
         return true;
     };
 
-    Display.prototype._setInStorage = function (asciiCode, bg, fg, x, y) {
+    Symbols.prototype._setInStorage = function (asciiCode, bg, fg, x, y) {
 
         if (typeof this._storage[x] === "undefined") {
             this._storage[x] = {};
@@ -236,5 +384,5 @@
         }
     };
 
-    global.Display = Display;
+    global.Symbols = Symbols;
 }).call(this);
